@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحدي أنقذ المريض - مستشفى موهبة التخصصي</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* ================= المتغيرات والألوان ================= */
+        :root {
+            --primary-purple: #5C2D91; /* لون موهبة الأساسي */
+            --light-purple: #8B5BB5;
+            --dark-purple: #3A1961;
+            --white: #FFFFFF;
+            --bg-gray: #F4F5F7;
+            --text-dark: #2C3E50;
+            --text-light: #7F8C8D;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(92, 45, 145, 0.15);
+            --shadow: 0 8px 32px 0 rgba(92, 45, 145, 0.1);
+            --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* ================= التنسيقات الأساسية ================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-gray);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(92, 45, 145, 0.05) 0%, transparent 20%),
+                              radial-gradient(circle at 90% 80%, rgba(139, 91, 181, 0.05) 0%, transparent 20%);
+        }
+
+        /* ================= شريط التقدم والمعلومات (Header) ================= */
+        .game-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            transform: translateY(-100%);
+            transition: var(--transition);
+        }
+
+        .game-header.visible {
+            transform: translateY(0);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            background: var(--white);
+            padding: 8px 15px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-badge i { color: var(--primary-purple); }
+        .stat-badge.timer i { color: var(--danger); }
+        .stat-badge.budget i { color: var(--warning); }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--light-purple), var(--primary-purple));
+            width: 0%;
+            transition: width 0.8s ease;
+        }
+
+        .header-controls button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--primary-purple);
+            cursor: pointer;
+            margin-right: 15px;
+            transition: var(--transition);
+        }
+
+        .header-controls button:hover { transform: scale(1.1); }
+
+        /* ================= الحاوية الرئيسية ================= */
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* ================= الشاشات والبطاقات ================= */
+        .screen {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: var(--shadow);
+            display: none;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .screen.active {
+            display: block;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .text-center { text-align: center; }
+        
+        .logo-container { margin-bottom: 20px; }
+        .mawhiba-img-logo {
+            max-width: 140px;
+            height: auto;
+            margin-bottom: 10px;
+            object-fit: contain;
+        }
+
+        h1.title { color: var(--primary-purple); font-weight: 800; font-size: 2.2rem; margin-bottom: 5px; }
+        h2.subtitle { color: var(--light-purple); font-weight: 600; font-size: 1.2rem; margin-bottom: 25px; }
+        h3.section-title { color: var(--dark-purple); font-weight: 700; margin-bottom: 15px; border-bottom: 2px solid var(--light-purple); padding-bottom: 10px; display: inline-block;}
+        p.desc { color: var(--text-light); font-size: 1.1rem; line-height: 1.8; margin-bottom: 25px; }
+
+        /* ================= النماذج والأزرار ================= */
+        .input-group { margin-bottom: 25px; }
+        .input-group input {
+            width: 100%;
+            max-width: 350px;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            outline: none;
+            text-align: center;
+        }
+        .input-group input:focus {
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 4px rgba(92, 45, 145, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-purple), var(--dark-purple));
+            color: var(--white);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(92, 45, 145, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(92, 45, 145, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-purple);
+            border: 2px solid var(--primary-purple);
+            box-shadow: none;
+        }
+        .btn-outline:hover { background: var(--primary-purple); color: var(--white); }
+
+        /* تأثير Ripple للأزرار */
+        .btn::after {
+            content: "";
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .btn:active::after { transform: scale(4); opacity: 1; transition: 0s; }
+
+        /* ================= شبكة الخيارات (Grid) ================= */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .option-card {
+            background: var(--white);
+            border: 2px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .option-card i { font-size: 2.5rem; color: var(--light-purple); margin-bottom: 15px; transition: var(--transition);}
+        .option-card:hover i { color: var(--primary-purple); transform: scale(1.1); }
+        .option-card h4 { color: var(--dark-purple); margin-bottom: 5px; }
+        .option-card .cost { font-size: 0.9rem; font-weight: 700; color: var(--warning); }
+        
+        .option-card.selected {
+            border-color: var(--success);
+            background: rgba(39, 174, 96, 0.05);
+        }
+        .option-card.selected i { color: var(--success); }
+        .option-card.disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
+        /* ================= النافذة المنبثقة (Modal) ================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0; visibility: hidden;
+            transition: var(--transition);
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-content {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: var(--transition);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        
+        .modal-icon { font-size: 4rem; margin-bottom: 15px; }
+        .modal-icon.success { color: var(--success); }
+        .modal-icon.error { color: var(--danger); }
+        .modal-icon.info { color: var(--primary-purple); }
+        
+        .modal-title { font-weight: 800; font-size: 1.5rem; margin-bottom: 10px; color: var(--dark-purple);}
+        .modal-text { color: var(--text-light); margin-bottom: 20px; line-height: 1.6; }
+
+        /* ================= الشهادة ================= */
+        .certificate-wrapper {
+            background: var(--white);
+            padding: 40px;
+            border: 10px solid var(--primary-purple);
+            outline: 2px solid var(--light-purple);
+            outline-offset: -15px;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 0 L100 50 L50 100 L0 50 Z" fill="rgba(92,45,145,0.03)"/></svg>');
+        }
+
+        .cert-header { margin-bottom: 30px; }
+        .cert-title { color: var(--primary-purple); font-size: 2.5rem; font-weight: 800; margin-top: 10px; }
+        .cert-body { margin-bottom: 30px; font-size: 1.2rem; line-height: 2; color: var(--text-dark); }
+        .cert-name { font-size: 2rem; color: var(--dark-purple); font-weight: 800; border-bottom: 2px dashed var(--primary-purple); display: inline-block; padding: 0 20px; margin: 10px 0;}
+        .cert-stats { display: flex; justify-content: space-around; background: var(--bg-gray); padding: 15px; border-radius: 10px; margin-top: 20px;}
+        .cert-stats div { font-weight: 700; color: var(--primary-purple); }
+        .cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; font-weight: 600; color: var(--text-light); }
+        
+        .signature { border-top: 2px solid var(--text-light); padding-top: 10px; width: 220px; text-align: center; margin: 0 auto;}
+
+        /* ================= إضافات حقوق الحفظ ================= */
+        .copyright-text {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 25px;
+            opacity: 0.8;
+        }
+
+        .game-footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-top: auto;
+            background: transparent;
+        }
+
+        /* ================= إعدادات الطباعة ================= */
+        @media print {
+            body * { visibility: hidden; }
+            .no-print { display: none !important; }
+            
+            #screen-6, #screen-6 * { visibility: visible; }
+            #screen-6 {
+                position: absolute;
+                left: 0; top: 0;
+                width: 100%; height: 100%;
+                background: white; padding: 0; margin: 0; border: none; box-shadow: none;
+                max-width: 100%;
+            }
+            .certificate-wrapper {
+                width: 210mm; /* A4 Width */
+                min-height: 297mm; /* A4 Height */
+                margin: 0 auto;
+                padding: 20mm;
+                box-sizing: border-box;
+                border: 15px solid #5C2D91 !important;
+                outline: 2px solid #8B5BB5 !important;
+                outline-offset: -20px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* ================= الشاشات المتجاوبة ================= */
+        @media (max-width: 768px) {
+            .screen { padding: 25px; }
+            h1.title { font-size: 1.8rem; }
+            .header-stats { gap: 10px; }
+            .stat-badge { font-size: 0.9rem; padding: 6px 10px; }
+            .cert-stats { flex-direction: column; gap: 10px; }
+            .cert-footer { flex-direction: column; gap: 20px; align-items: center; }
+        }
+        .mawhiba-img-logo{
+    display:none !important;
+}
+    </style>
+</head>
+<body>
+
+    <header class="game-header no-print" id="gameHeader">
+        <div class="header-stats">
+            <div class="stat-badge" title="الطبيب">
+                <i class="fas fa-user-md"></i> <span id="ui-name">---</span>
+            </div>
+            <div class="stat-badge budget" title="الميزانية">
+                <i class="fas fa-coins"></i> <span id="ui-budget">1000</span> ريال
+            </div>
+            <div class="stat-badge timer" title="الوقت المتبقي">
+                <i class="fas fa-clock"></i> <span id="ui-timer">05:00</span>
+            </div>
+            <div class="stat-badge" title="النقاط">
+                <i class="fas fa-star"></i> <span id="ui-score">0</span> / 100
+            </div>
+        </div>
+        <div class="header-controls">
+            <button onclick="toggleSound()" id="soundBtn" title="الصوت"><i class="fas fa-volume-up"></i></button>
+            <button onclick="resetGame()" title="إعادة اللعب"><i class="fas fa-redo"></i></button>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        
+        <div class="screen active text-center" id="screen-0">
+            <div class="logo-container">
+                <img src="شعار موهبة الجديد.jpeg" alt="شعار موهبة" class="mawhiba-img-logo">
+            </div>
+            <h1 class="title">مستشفى موهبة التخصصي</h1>
+            <h2 class="subtitle">تحدي أنقذ المريض</h2>
+            <p class="desc">
+                مرحباً بك في وحدة الطوارئ الذكية. أنت طبيب المستقبل، ومهمتك اليوم هي إنقاذ حياة مريض يعاني من أعراض غامضة. 
+                اعتمد على معرفتك العلمية والطبية، قم بطلب الفحوصات بذكاء دون استنزاف الميزانية، وشخّص المرض بدقة.
+            </p>
+            <div class="input-group">
+                <input type="text" id="doctorName" placeholder="أدخل اسمك الكريم (د. ...)" autocomplete="off">
+            </div>
+            <button class="btn" onclick="startGame()">
+                <i class="fas fa-play"></i> ابدأ المهمة
+            </button>
+            <p class="copyright-text">© جميع الحقوق محفوظة - محمد هاشم القثامي</p>
+        </div>
+
+        <div class="screen" id="screen-1">
+            <h3 class="section-title"><i class="fas fa-file-medical"></i> ملف المريض: حالة طارئة</h3>
+            <p class="desc">
+                <strong>الاسم:</strong> مجهول (شاب، 17 عاماً)<br>
+                <strong>الأعراض:</strong> وصل المريض إلى الطوارئ يعاني من إرهاق شديد جداً، ألم حاد في المفاصل والعظام، وصعوبة في التنفس. 
+                أظهرت المؤشرات الحيوية نقصاً في نسبة الأكسجين في الدم (SpO2: 85%).<br>
+                <strong>ملاحظات:</strong> التاريخ العائلي يشير إلى احتمالية وجود اضطرابات وراثية في الدم.
+            </p>
+            <p class="desc text-light" style="font-size: 0.9rem; margin-top: -15px;">
+                * الميزانية الحالية 1000 ريال. اختر الفحوصات بحكمة لتجنب الإفلاس.
+            </p>
+            <div class="text-center mt-3">
+                <button class="btn" onclick="nextStage(2)">
+                    <i class="fas fa-arrow-left"></i> الانتقال للمختبر لإجراء الفحوصات
+                </button>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-2">
+            <h3 class="section-title"><i class="fas fa-microscope"></i> المختبر الطبي ذو التقنية العالية</h3>
+            <p class="desc">حدد الفحوصات اللازمة لتشخيص الحالة. كل فحص يخصم من ميزانيتك.</p>
+            
+            <div class="options-grid" id="testsGrid">
+                <div class="option-card" onclick="doTest('cbc', 100, this, 'أظهرت النتائج انخفاضاً حاداً في مستوى الهيموجلوبين، وشكل كريات الدم الحمراء غير طبيعي (مشوهة).')">
+                    <i class="fas fa-vial"></i>
+                    <h4>مسحة دم شاملة (CBC)</h4>
+                    <span class="cost">-100 ريال</span>
+                </div>
+                <div class="option-card" onclick="doTest('dna', 350, this, 'أظهر التسلسل الجيني طفرة في الجين المسؤول عن إنتاج الهيموجلوبين (HBB).')">
+                    <i class="fas fa-dna"></i>
+                    <h4>الفحص الجيني (DNA)</h4>
+                    <span class="cost">-350 ريال</span>
+                </div>
+                <div class="option-card" onclick="doTest('xray', 200, this, 'الأشعة السينية للصدر سليمة، لا يوجد التهاب رئوي بكتيري أو تجمعات سوائل.')">
+                    <i class="fas fa-x-ray"></i>
+                    <h4>أشعة سينية للصدر</h4>
+                    <span class="cost">-200 ريال</span>
+                </div>
+                <div class="option-card" onclick="doTest('sugar', 50, this, 'مستوى السكر في الدم طبيعي (95 mg/dL).')">
+                    <i class="fas fa-tint"></i>
+                    <h4>تحليل سكر الدم</h4>
+                    <span class="cost">-50 ريال</span>
+                </div>
+            </div>
+            
+            <div class="text-center" style="margin-top: 30px;">
+                <button class="btn" onclick="finishTests()">
+                    <i class="fas fa-stethoscope"></i> الذهاب للتشخيص
+                </button>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-3">
+            <h3 class="section-title"><i class="fas fa-notes-medical"></i> التشخيص النهائي</h3>
+            <p class="desc">بناءً على الأعراض ونتائج الفحوصات (ألم مفاصل، نقص أكسجة، طفرة جينية، كريات دم مشوهة)، ما هو تشخيصك الدقيق للحالة؟ (تحذير: الخطأ يخصم من النقاط)</p>
+            
+            <div class="options-grid">
+                <div class="option-card" onclick="submitDiagnosis('anemia_iron')">
+                    <i class="fas fa-disease"></i>
+                    <h4>فقر الدم بعوز الحديد</h4>
+                </div>
+                <div class="option-card" onclick="submitDiagnosis('pneumonia')">
+                    <i class="fas fa-lungs-virus"></i>
+                    <h4>التهاب رئوي حاد</h4>
+                </div>
+                <div class="option-card" onclick="submitDiagnosis('sickle_cell')">
+                    <i class="fas fa-dna"></i>
+                    <h4>فقر الدم المنجلي (وراثي)</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-4">
+            <h3 class="section-title"><i class="fas fa-syringe"></i> خطة العلاج</h3>
+            <p class="desc">أحسنت في التشخيص! المريض يعاني من نوبة فقر دم منجلي. حدد الخطة العلاجية العاجلة المناسبة:</p>
+            
+            <div class="options-grid">
+                <div class="option-card" onclick="submitTreatment('antibiotics')">
+                    <i class="fas fa-capsules"></i>
+                    <h4>مضادات حيوية قوية فقط</h4>
+                </div>
+                <div class="option-card" onclick="submitTreatment('oxygen_fluids')">
+                    <i class="fas fa-procedures"></i>
+                    <h4>إعطاء أكسجين، سوائل وريدية، ومسكنات ألم</h4>
+                </div>
+                <div class="option-card" onclick="submitTreatment('surgery')">
+                    <i class="fas fa-scalpel"></i>
+                    <h4>تدخل جراحي عاجل في القلب</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-5">
+            <h3 class="section-title"><i class="fas fa-hands-bubbles"></i> بروتوكول التعقيم</h3>
+            <p class="desc">قبل مغادرة الطوارئ، يجب تطبيق إجراءات مكافحة العدوى والنفايات الطبية. اختر الإجراء الصحيح للتعامل مع الإبر الوريدية المستخدمة:</p>
+            
+            <div class="options-grid">
+                <div class="option-card" onclick="submitSterilization('trash')">
+                    <i class="fas fa-trash"></i>
+                    <h4>رميها في سلة المهملات العادية</h4>
+                </div>
+                <div class="option-card" onclick="submitSterilization('yellow_box')">
+                    <i class="fas fa-box-archive"></i>
+                    <h4>التخلص منها في حاوية النفايات الحادة (الصفراء) وغسل اليدين</h4>
+                </div>
+                <div class="option-card" onclick="submitSterilization('recycle')">
+                    <i class="fas fa-recycle"></i>
+                    <h4>إعادة تعقيمها بالكحول لاستخدامها لاحقاً</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-6" style="max-width: 900px;">
+            <div class="certificate-wrapper" id="certificate">
+                <div class="cert-header">
+                    <div class="logo-container">
+                        <img src="شعار موهبة الجديد.jpeg" alt="شعار موهبة" class="mawhiba-img-logo" style="max-width: 110px;">
+                    </div>
+                    <h1 class="cert-title">مستشفى موهبة التخصصي</h1>
+                    <p style="color: var(--light-purple); font-weight: 600;">شهادة إنجاز واجتياز المحاكاة الطبية</p>
+                </div>
+                <div class="cert-body">
+                    تشهد إدارة التدريب والمحاكاة أن<br>
+                    <span class="cert-name" id="cert-doctor-name">د. محمد</span><br>
+                    قد أتم بنجاح "تحدي أنقذ المريض" وأثبت كفاءة علمية وعملية في تطبيق مهارات التشخيص المخبري والتدخل العلاجي.
+                </div>
+                <div class="cert-stats">
+                    <div><i class="fas fa-star"></i> التقييم: <span id="cert-score">95</span>/100</div>
+                    <div><i class="fas fa-award"></i> اللقب: <span id="cert-rank">كبير الأطباء</span></div>
+                    <div><i class="fas fa-stopwatch"></i> الزمن: <span id="cert-time">02:30</span></div>
+                    <div><i class="fas fa-vial"></i> الفحوصات: <span id="cert-tests">2</span></div>
+                </div>
+                <div class="cert-footer">
+                    <div>التاريخ: <span id="cert-date">2026/01/01</span></div>
+                    <div class="signature">
+                        مدير مستشفى موهبة التخصصي<br>
+                        <span style="font-weight: 800; color: var(--dark-purple);">محمد هاشم القثامي</span><br>
+                        <i class="fas fa-signature" style="color:var(--primary-purple); font-size:1.5rem; margin-top:5px;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center no-print" style="margin-top: 30px; display: flex; justify-content: center; gap: 15px;">
+                <button class="btn" onclick="window.print()">
+                    <i class="fas fa-print"></i> طباعة الشهادة
+                </button>
+                <button class="btn btn-outline" onclick="resetGame()">
+                    <i class="fas fa-redo"></i> محاولة جديدة
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="game-footer no-print">
+        <p style="font-weight: 700; color: var(--dark-purple);">مستشفى موهبة التخصصي</p>
+        <p>تصميم وتطوير: محمد هاشم القثامي</p>
+        <p>© جميع الحقوق محفوظة 2026</p>
+    </footer>
+
+    <div class="modal-overlay" id="customModal">
+        <div class="modal-content">
+            <i class="fas fa-info-circle modal-icon info" id="modalIcon"></i>
+            <h2 class="modal-title" id="modalTitle">عنوان</h2>
+            <p class="modal-text" id="modalText">نص الرسالة هنا...</p>
+            <button class="btn" onclick="closeModal()">حسناً</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= إدارة الحالة (State Management) =================
+        let state = {
+            name: '',
+            stage: 0,
+            budget: 1000,
+            score: 0,
+            timeLeft: 300, // 5 minutes in seconds
+            testsCount: 0,
+            isPlaying: false,
+            diagnosisPoints: 30, // Starts at 30, decreases on error
+            treatmentPoints: 30,
+            sterilizationPoints: 20
+        };
+
+        let timerInterval;
+        let soundEnabled = true;
+
+        // ================= نظام الصوت (Web Audio API - بدون ملفات خارجية) =================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            click: () => playTone(600, 'sine', 0.1, 0.05),
+            success: () => {
+                playTone(600, 'triangle', 0.1, 0.1);
+                setTimeout(() => playTone(800, 'triangle', 0.1, 0.1), 100);
+                setTimeout(() => playTone(1200, 'triangle', 0.3, 0.1), 200);
+            },
+            error: () => {
+                playTone(300, 'sawtooth', 0.2, 0.1);
+                setTimeout(() => playTone(250, 'sawtooth', 0.4, 0.1), 150);
+            },
+            cheer: () => {
+                // محاكاة تصفيق خفيف باستخدام ضوضاء
+                if (!soundEnabled) return;
+                const bufferSize = audioCtx.sampleRate * 2; 
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 2);
+                noise.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+            }
+        };
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('soundBtn');
+            btn.innerHTML = soundEnabled ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
+            if(soundEnabled) sounds.click();
+        }
+
+        // ================= التهيئة واسترجاع البيانات (LocalStorage) =================
+        window.onload = () => {
+            const savedState = localStorage.getItem('mawhibaGameData');
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                if (parsed.isPlaying && parsed.stage > 0 && parsed.stage < 6) {
+                    // استرجاع التقدم
+                    state = parsed;
+                    document.getElementById('doctorName').value = state.name;
+                    document.getElementById('ui-name').innerText = `د. ${state.name}`;
+                    updateUI();
+                    document.getElementById('gameHeader').classList.add('visible');
+                    goToStage(state.stage, true);
+                    startTimer();
+                }
+            }
+        };
+
+        function saveProgress() {
+            localStorage.setItem('mawhibaGameData', JSON.stringify(state));
+        }
+
+        // ================= الدوال الأساسية للعبة =================
+        function startGame() {
+            const nameInput = document.getElementById('doctorName').value.trim();
+            if (!nameInput) {
+                showModal('تنبيه', 'الرجاء إدخال اسم الطبيب لبدء المهمة.', 'info');
+                return;
+            }
+            
+            sounds.click();
+            state.name = nameInput;
+            state.isPlaying = true;
+            document.getElementById('ui-name').innerText = `د. ${state.name}`;
+            document.getElementById('gameHeader').classList.add('visible');
+            
+            updateUI();
+            nextStage(1);
+            startTimer();
+        }
+
+        function updateUI() {
+            document.getElementById('ui-budget').innerText = state.budget;
+            document.getElementById('ui-score').innerText = state.score;
+            document.getElementById('progressBar').style.width = `${(state.stage / 6) * 100}%`;
+            saveProgress();
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (state.timeLeft > 0) {
+                    state.timeLeft--;
+                    document.getElementById('ui-timer').innerText = formatTime(state.timeLeft);
+                    
+                    if (state.timeLeft <= 60) {
+                        document.querySelector('.stat-badge.timer').style.color = 'var(--danger)';
+                        document.querySelector('.stat-badge.timer').style.borderColor = 'var(--danger)';
+                    }
+                    saveProgress();
+                } else {
+                    clearInterval(timerInterval);
+                    showModal('انتهى الوقت!', 'لقد استغرقت وقتاً طويلاً في الطوارئ.', 'error');
+                    setTimeout(resetGame, 3000);
+                }
+            }, 1000);
+        }
+
+        // ================= التنقل بين المراحل =================
+        function nextStage(stageNum) {
+            sounds.click();
+            goToStage(stageNum);
+        }
+
+        function goToStage(stageNum, isRestoring = false) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${stageNum}`).classList.add('active');
+            state.stage = stageNum;
+            if (!isRestoring) updateUI();
+        }
+
+        // ================= منطق المراحل =================
+        
+        // مرحلة 2: الفحوصات
+        function doTest(testType, cost, cardElement, resultText) {
+            if (cardElement.classList.contains('selected')) return; // تم فحصه مسبقاً
+            
+            if (state.budget < cost) {
+                sounds.error();
+                showModal('رصيد غير كافٍ', 'الميزانية لا تسمح بإجراء هذا الفحص. اختر فحوصات أخرى أو انتقل للتشخيص.', 'error');
+                return;
+            }
+
+            sounds.click();
+            state.budget -= cost;
+            state.testsCount++;
+            state.score += 5; // 5 نقاط لكل فحص صحيح بدون تبذير (بحد أقصى 20 للفحوصات)
+            if(state.score > 20 && state.stage === 2) state.score = 20; 
+            
+            cardElement.classList.add('selected');
+            updateUI();
+            
+            showModal('نتيجة الفحص', resultText, 'success');
+        }
+
+        function finishTests() {
+            if (state.testsCount === 0) {
+                sounds.error();
+                showModal('تنبيه', 'يجب إجراء فحص واحد على الأقل قبل التشخيص.', 'warning');
+                return;
+            }
+            nextStage(3);
+        }
+
+        // مرحلة 3: التشخيص
+        function submitDiagnosis(answer) {
+            if (answer === 'sickle_cell') {
+                sounds.success();
+                state.score += state.diagnosisPoints;
+                showModal('تشخيص صحيح!', 'أحسنت! الأعراض (ألم مفاصل، نقص أكسجة) ونتائج الفحص الجيني تدل على نوبة فقر دم منجلي.', 'success');
+                setTimeout(() => nextStage(4), 2500);
+            } else {
+                sounds.error();
+                state.diagnosisPoints = Math.max(0, state.diagnosisPoints - 15); // خصم نقاط عند الخطأ
+                showModal('تشخيص خاطئ', 'التهاب الرئة أو نقص الحديد لا يفسر الطفرة الجينية وكريات الدم المشوهة. راجع الأدلة وحاول مجدداً.', 'error');
+            }
+            updateUI();
+        }
+
+        // مرحلة 4: العلاج
+        function submitTreatment(answer) {
+            if (answer === 'oxygen_fluids') {
+                sounds.success();
+                state.score += state.treatmentPoints;
+                showModal('علاج موفق!', 'قرار سليم. المريض بحاجة ماسة للأكسجين والسوائل لفك انسداد الأوعية الدموية وتخفيف الألم.', 'success');
+                setTimeout(() => nextStage(5), 2500);
+            } else {
+                sounds.error();
+                state.treatmentPoints = Math.max(0, state.treatmentPoints - 15);
+                showModal('قرار خاطئ', 'هذا التدخل غير مناسب للحالة وقد يعرض حياة المريض للخطر. فكر في الإجراءات الداعمة لنقص الأكسجة.', 'error');
+            }
+            updateUI();
+        }
+
+        // مرحلة 5: التعقيم والنفايات
+        function submitSterilization(answer) {
+            if (answer === 'yellow_box') {
+                state.score += state.sterilizationPoints;
+                updateUI();
+                finishGame();
+            } else {
+                sounds.error();
+                state.sterilizationPoints = Math.max(0, state.sterilizationPoints - 10);
+                showModal('خطأ في بروتوكول العدوى', 'الإبر الملوثة بالدم يجب التخلص منها في الحاوية الصفراء للنفايات الحادة لتجنب انتقال الأمراض.', 'error');
+            }
+        }
+
+        // ================= إنهاء اللعبة والشهادة =================
+        function finishGame() {
+            clearInterval(timerInterval);
+            state.isPlaying = false;
+            
+            // تحديد اللقب
+            let rank = "";
+            if (state.score >= 95) rank = "🏆 كبير الأطباء";
+            else if (state.score >= 85) rank = "🥇 استشاري";
+            else if (state.score >= 70) rank = "🥈 طبيب متميز";
+            else if (state.score >= 50) rank = "🥉 طبيب مبتدئ";
+            else rank = "بحاجة لمزيد من التدريب";
+
+            // تعبئة بيانات الشهادة
+            document.getElementById('cert-doctor-name').innerText = `د. ${state.name}`;
+            document.getElementById('cert-score').innerText = state.score;
+            document.getElementById('cert-rank').innerText = rank;
+            
+            const timeTaken = 300 - state.timeLeft;
+            document.getElementById('cert-time').innerText = formatTime(timeTaken);
+            document.getElementById('cert-tests').innerText = state.testsCount;
+            
+            const today = new Date();
+            document.getElementById('cert-date').innerText = today.toLocaleDateString('ar-SA');
+
+            sounds.success();
+            setTimeout(sounds.cheer, 500);
+            triggerConfetti();
+            
+            // الانتقال للشهادة
+            document.getElementById('gameHeader').classList.remove('visible');
+            goToStage(6);
+            localStorage.removeItem('mawhibaGameData'); // مسح التخزين لانتهاء اللعبة
+        }
+
+        // ================= مؤثرات الاحتفال (Confetti) =================
+        function triggerConfetti() {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#5C2D91', '#8B5BB5', '#ffffff']
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#5C2D91', '#8B5BB5', '#ffffff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // ================= النافذة المنبثقة المخصصة (Modal) =================
+        function showModal(title, text, type) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = text;
+            
+            const icon = document.getElementById('modalIcon');
+            icon.className = 'fas modal-icon'; // Reset
+            
+            if(type === 'success') { icon.classList.add('fa-check-circle', 'success'); }
+            else if(type === 'error') { icon.classList.add('fa-times-circle', 'error'); }
+            else if(type === 'warning') { icon.classList.add('fa-exclamation-triangle', 'warning'); }
+            else { icon.classList.add('fa-info-circle', 'info'); }
+
+            document.getElementById('customModal').classList.add('active');
+        }
+
+        function closeModal() {
+            sounds.click();
+            document.getElementById('customModal').classList.remove('active');
+        }
+
+        // ================= إعادة اللعب =================
+        function resetGame() {
+            sounds.click();
+            clearInterval(timerInterval);
+            localStorage.removeItem('mawhibaGameData');
+            location.reload();
+        }
+
+    </script>
+</body>
+</html>
