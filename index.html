@@ -407,12 +407,12 @@
        @media print {
 
     @page{
-        size:A4 landscape;
-        margin:0;
+        size: A4 landscape;
+        margin: 0;
     }
 
     body *{
-        visibility:hidden;
+        visibility: hidden;
     }
 
     .no-print{
@@ -430,7 +430,7 @@
         top:0;
         width:100%;
         height:100%;
-        background:#fff;
+        background:white;
         padding:0;
         margin:0;
         border:none;
@@ -444,7 +444,7 @@
         height:210mm;
 
         margin:0 auto;
-        padding:15mm;
+        padding:12mm;
 
         box-sizing:border-box;
 
@@ -452,11 +452,36 @@
         outline:2px solid #8B5BB5 !important;
         outline-offset:-20px !important;
 
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+
         -webkit-print-color-adjust:exact;
         print-color-adjust:exact;
     }
-}
 
+    .cert-title{
+        font-size:2rem !important;
+    }
+
+    .cert-body{
+        font-size:1rem !important;
+        line-height:1.5 !important;
+    }
+
+    .cert-name{
+        font-size:1.6rem !important;
+    }
+
+    .cert-stats{
+        grid-template-columns:repeat(4,1fr) !important;
+        font-size:.85rem !important;
+    }
+
+    .cert-footer{
+        font-size:.8rem !important;
+    }
+}
         /* ================= الشاشات المتجاوبة ================= */
 @media (max-width: 768px) {
     .screen { padding: 25px; }
